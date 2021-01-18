@@ -203,6 +203,24 @@ public class IntegrityUtil {
 		}
 		return result;
 	}
+	
+	/**
+	 * 根据ID查询先关数据
+	 * @param id
+	 * @param fields
+	 * @return
+	 * @throws APIException
+	 */
+	public Map<String, String> getItemById(String id, List<String> fields) throws APIException{
+		List<String> ids = new ArrayList<>();
+		ids.add(id);
+		List<Map<String, String>> results = getItemByIds(ids, fields);
+		if(results != null && !results.isEmpty()) {
+			return results.get(0);
+		}else {
+			return new HashMap<>();
+		}
+	}
 
 	/**
 	 * 根据Ids查询字段的值
@@ -281,6 +299,13 @@ public class IntegrityUtil {
 		}
 	}
 
+	/**
+	 * 编辑数据
+	 * @param id
+	 * @param fieldValue
+	 * @param richFieldValue
+	 * @throws APIException
+	 */
 	public void editIssue(String id, Map<String, String> fieldValue, Map<String, String> richFieldValue)
 			throws APIException {
 		Command cmd = new Command(Command.IM, "editissue");
@@ -296,6 +321,100 @@ public class IntegrityUtil {
 		}
 		cmd.addSelection(id);
 		mksCmdRunner.execute(cmd);
+	}
+	
+	/**
+	 * 根据文档ID查询所有子项
+	 * @param documents
+	 */
+	public List<String> allContents(String document) throws APIException ,Exception {
+		List<String> returnResult = new ArrayList<>();
+		Command command = new Command("im", "issues");
+		command.addOption(new Option("fields", "contains"));
+		command.addSelection(document);
+		Response res = mksCmdRunner.execute(command);
+		WorkItemIterator it = res.getWorkItems();
+		SelectionList sl = new SelectionList();
+		List<String> fields = new ArrayList<>();
+		fields.add("ID");
+		while (it.hasNext()) {
+			WorkItem wi = it.next();
+			ItemList il = (ItemList) wi.getField("contains").getList();
+			for (int i = 0; i < il.size(); i++) {
+				Item item = (Item) il.get(i);
+				String id = item.getId();
+				sl.add(id);
+			}
+		}
+		SelectionList contents = null;
+		if (sl != null && sl.size() >= 1) {
+			contents = contains(sl);
+
+			if (contents.size() > 0) {
+				SelectionList contains = new SelectionList();
+				contains.add(contents);
+				while (true) {
+					SelectionList conteins = contains(contains);
+					if (conteins.size() < 1) {
+						break;
+					}
+					contents.add(conteins);
+					contains = new SelectionList();
+					contains.add(conteins);
+				}
+			}
+			contents.add(sl);
+		}
+		if(contents.size()>0){
+			for(int i=0; i<contents.size(); i++){
+				returnResult.add(contents.getSelection(i));
+			}
+		}
+		return returnResult;
+	}
+	
+	/**
+	 * 通过Contains字段查询所有子项
+	 * @param documents
+	 * @return
+	 * @throws APIException
+	 */
+	public SelectionList contains(SelectionList documents) throws APIException {
+		return relationshipValues("Contains", documents);
+	}
+
+	/**
+	 * 查询关联值
+	 * @param fieldName
+	 * @param ids
+	 * @return
+	 * @throws APIException
+	 */
+	public SelectionList relationshipValues(String fieldName, SelectionList ids) throws APIException {
+		if (fieldName == null) {
+			throw new APIException("invoke fieldValues() ----- fieldName is null.");
+		}
+		if (ids == null || ids.size() < 1) {
+			throw new APIException("invoke fieldValues() ----- ids is null or empty.");
+		}
+		Command command = new Command(Command.IM, "issues");
+		command.addOption(new Option("fields", fieldName));
+		command.setSelectionList(ids);
+		Response res = mksCmdRunner.execute(command);
+		WorkItemIterator it = res.getWorkItems();
+		SelectionList contents = new SelectionList();
+		while (it.hasNext()) {
+			WorkItem wi = it.next();
+			ItemList il = (ItemList) wi.getField(fieldName).getList();
+			if(il != null) {
+				for (int i = 0; i < il.size(); i++) {
+					Item item = (Item) il.get(i);
+					String id = item.getId();
+					contents.add(id);
+				}
+			}
+		}
+		return contents;
 	}
 
 	public List<Map<String, Object>> getResult(String sessionID, String suiteID, String type) throws APIException {
@@ -464,7 +583,13 @@ public class IntegrityUtil {
 		return id;
 	}
 	
-
+	/**
+	 * 添加关联关系
+	 * @param id
+	 * @param fieldName
+	 * @param relateID
+	 * @throws APIException
+	 */
 	public void addRelationship(String id, String fieldName, String relateID) throws APIException {
 		Command cmd = new Command("im", "editissue");
 		OptionList ol = new OptionList();
@@ -474,6 +599,30 @@ public class IntegrityUtil {
 		mksCmdRunner.execute(cmd);
 	}
 	
+
+	/**
+	 * 移除关联关系
+	 * @param id
+	 * @param fieldName
+	 * @param relateID
+	 * @throws APIException
+	 */
+	public void removeRelationship(String id, String fieldName, String relateID) throws APIException {
+		Command cmd = new Command("im", "editissue");
+		OptionList ol = new OptionList();
+		ol.add(new Option("removeFieldValues", fieldName + ":" + relateID));
+		cmd.setOptionList(ol);
+		cmd.addSelection(id);
+		mksCmdRunner.execute(cmd);
+	}
+	
+	/**
+	 * 移动条目上下前后关系
+	 * @param parentId
+	 * @param beforeId
+	 * @param id
+	 * @throws APIException
+	 */
 	public void moveContent(String parentId,String beforeId,String id) throws APIException {
 		Command cmd = new Command("im", "movecontent");
 		cmd.addOption(new Option("parentID",parentId));
@@ -738,13 +887,59 @@ public class IntegrityUtil {
 		return true;
 	}
 	
+	/**
+	 * 根据Ids查询字段的值
+	 * 
+	 * @param ids
+	 * @param fields
+	 * @return
+	 * @throws APIException
+	 */
+	public List<Map<String, String>> findItemsByIDs(List<String> ids, List<String> fields) throws Exception {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		Command cmd = new Command("im", "issues");
+		MultiValue mv = new MultiValue();
+		mv.setSeparator(",");
+		for (String field : fields) {
+			mv.add(field);
+		}
+		Option op = new Option("fields", mv);
+		cmd.addOption(op);
+
+		SelectionList sl = new SelectionList();
+		for (String id : ids) {
+			sl.add(id);
+		}
+		cmd.setSelectionList(sl);
+
+		Response res = null;
+		try {
+			res = mksCmdRunner.execute(cmd);
+			WorkItemIterator it = res.getWorkItems();
+			while (it.hasNext()) {
+				WorkItem wi = it.next();
+				Map<String, String> map = new HashMap<String, String>();
+				Iterator fieldIte = wi.getFields();
+				while(fieldIte.hasNext()){
+					Field field = (Field)fieldIte.next();
+					map.put(field.getDisplayName(), field.getValueAsString());
+				}
+				list.add(map);
+			}
+		} catch (APIException e) {
+			// success = false;
+			logger.error(APIExceptionUtil.getMsg(e));
+			throw new Exception(APIExceptionUtil.getMsg(e));
+		}
+		return list;
+	}
 	
 	/**
 	 * Description 校验类型是否正确
 	 * @return
 	 * @throws APIException
 	 */
-	public String checkIssueType(List<String> ids, String type, String checkState) throws APIException{
+	public String checkIssueType(List<String> ids, String type) throws APIException{
 		if(ids == null || ids.isEmpty())
 			return "";
 		Command cmd = new Command("im", "issues");
@@ -758,7 +953,6 @@ public class IntegrityUtil {
 		StringBuffer typeErrorMessage = new StringBuffer("");
 		StringBuffer stateErrorMessage = new StringBuffer("");
 		boolean typeError = false;
-		boolean stateError = false;
 		if (res != null) {
 			WorkItemIterator it = res.getWorkItems();
 			while (it.hasNext()) {
@@ -769,16 +963,11 @@ public class IntegrityUtil {
 				if(!actualType.equals(type)){
 					typeErrorMessage.append(id + ";");
 					typeError = true;
-				}else if(!actualState.equals(checkState)){
-					stateErrorMessage.append(id + ";");
-					stateError = true;
 				}
 			}
 		}
 		if(typeError)
 			typeErrorMessage.append(" is not [ " + type + " ] Type. Please check it. \n");
-		if(stateError)
-			stateErrorMessage.append("is not in [" + checkState + " ] state. Please Check it");
 		return typeErrorMessage.toString() + stateErrorMessage.toString();
 	}
 }

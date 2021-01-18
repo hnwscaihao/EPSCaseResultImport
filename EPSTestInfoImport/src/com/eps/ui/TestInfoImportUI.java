@@ -55,7 +55,6 @@ public class TestInfoImportUI extends JFrame {
 	public static JPanel contentPane;
 	private JTabbedPane tabbedPane;
 	private JTable tableMapper;
-	private JButton backBtn;
 	private JButton nextBtn;
 	private JButton doneBtn;
 	private static JTextArea textArea;
@@ -127,7 +126,7 @@ public class TestInfoImportUI extends JFrame {
 	 */
 	public TestInfoImportUI() throws Exception {
 		
-		setTitle("Excel Import");
+		setTitle("Excel Import Test Info");
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 849, 416);
@@ -205,7 +204,7 @@ public class TestInfoImportUI extends JFrame {
 		lblNewLabel.setBounds(25, 116, 144, 24);
 		panel.add(lblNewLabel);
 		
-		lblTheProject = new JLabel("( The project must be fill in while importing new document. Format Example: /Test1 )");
+		lblTheProject = new JLabel("( The project must be fill in while importing new test suite. Format Example: /Test1 )");
 		lblTheProject.setVerticalAlignment(SwingConstants.TOP);
 		lblTheProject.setForeground(Color.RED);
 		lblTheProject.setBounds(25, 170, 822, 24);
@@ -266,21 +265,16 @@ public class TestInfoImportUI extends JFrame {
 		nextBtn = new JButton("Next");
 		nextBtn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				nextAction(1);
+				try {
+					nextAction(1);
+				} catch (APIException e1) {
+					String message = APIExceptionUtil.getMsg(e1);
+					JOptionPane.showMessageDialog(contentPane, message);
+				}
 			}
 		});
 		nextBtn.setBounds(558, 345, 100, 27);
 		contentPane.add(nextBtn);
-
-		backBtn = new JButton("back");
-		backBtn.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				nextAction(-1);
-			}
-		});
-		backBtn.setEnabled(false);
-		backBtn.setBounds(428, 345, 100, 27);
-		contentPane.add(backBtn);
 
 		helloText = new JLabel("Hello :)");
 		helloText.setBounds(31, 345, 337, 18);
@@ -304,8 +298,9 @@ public class TestInfoImportUI extends JFrame {
 	/**
 	 * 定义next按钮操作
 	 * @param plus
+	 * @throws APIException 
 	 */
-	public void nextAction(int plus) {
+	public void nextAction(int plus) throws APIException {
 		int curIdx = tabbedPane.getSelectedIndex();
 		int maxIdx = tabbedPane.getComponentCount() - 1;
 		int newIdx = curIdx + plus;
@@ -384,6 +379,7 @@ public class TestInfoImportUI extends JFrame {
 				}
 			} catch (APIException e) {
 				APIExceptionUtil.getMsg(e);
+				throw e;
 			} catch (Exception e){
 				e.printStackTrace();
 			}
@@ -403,11 +399,6 @@ public class TestInfoImportUI extends JFrame {
 			configTimeArea(j);
 		}
 		if (pass) {
-			if (newIdx > 0) {
-				backBtn.setEnabled(true);
-			} else {
-				backBtn.setEnabled(false);
-			}
 			if (newIdx < maxIdx) {
 				nextBtn.setEnabled(true);
 				doneBtn.setEnabled(false);

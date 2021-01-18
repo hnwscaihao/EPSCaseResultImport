@@ -1,23 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <fieldMapping>
-	<!-- excel中字段 -->
-	<importType name="Test Case Export" type="Test Suite" mergeStep="true" structure="false"><!-- Test Case & Test Step & Test Result --><!--  -->
-		<excelField  name="ID"  					type="Test Case"  			field="ID"				titleColor="A"/>
-		<excelField  name="Project"  				type="Test Case"  			field="Project"			titleColor="A"/>
-		<excelField  name="Category"  				type="Test Case"  			field="Category"			/>
-		<excelField  name="State"  					type="Test Case"  			field="State"				/>
-		<excelField  name="Priority"  				type="Test Case"  			field="Priority"			/>
-		<excelField  name="Sequence"  				type="Test Case"  			field="Customer Sequence"			/>
-		<excelField  name="Sub-Sequence"  			type="Test Case"  			field="-"		/>
-		<excelField  name="Sub-Sub-Sequence"  		type="Test Case"  			field="-"	/>
-		<excelField  name="Summary"  				type="Test Case"  			field="Summary"				/>
-		<excelField  name="Text"  					type="Test Case"  			field="Text"				/>
-		<excelField  name="Software Detail Design Related"  					type="Test Case"  			field="Validates"				/>
-		<excelField  name="Test Step ID"  			type="Test Step"  			field="ID"					/>
-		<excelField  name="Description"  			type="Test Step"  			field="Description"			/>
-		<excelField  name="Expected Results"  		type="Test Case"  			field="Expected Results"	/>
-		<excelField  name="Session ID"  			type="Test Result"  		field="Session ID"			/>
-		<excelField  name="Verdict"  				type="Test Result"  		field="Verdict"			/>
-		<excelField  name="Annotation"  			type="Test Result"  		field="Annotation"			/>
-	</importType>
+    <!-- excel中字段 -->
+    <importType name="Test Case Export"	type="Test Suite"	defaultCategory="System Qualification Test">
+        <excelField name="测试用例ID" 		type="Test Case" 	field="ID" 				mergeHeader="测试用例"/>
+        <excelField name="测试用例产生方法" 	type="Test Case" 	field="Methods for deriving test cases" mergeHeader="测试用例"/>
+        <excelField name="测试方法" 		type="Test Case" 	field="Test methods" 	mergeHeader="测试用例"/>
+        <excelField name="测试点描述" 		type="Test Case" 	field="Text"		 	mergeHeader="测试用例"/>
+        <excelField name="预置条件" 		type="Test Case"	field="Precondition" 	mergeHeader="测试用例"/>
+        <excelField name="监控数据" 		type="Test Case" 	field="Monitoring Data" mergeHeader="测试用例"/>
+        <excelField name="用例描述" 		type="Test Step" 	field="Description" 	mergeHeader="测试用例"/>
+        <excelField name="预期结果" 		type="Test Step" 	field="Expected Result" mergeHeader="测试用例"/>
+        <excelField name="测试结果记录" 	type="Test Step" 	field="Cycle Verdict" 	mergeHeader="测试结果"/>
+        <excelField name="测试结论" 		type="Test Result" 	field="Verdict" 		mergeHeader="测试结果"/>
+        <excelField name="缺陷ID" 		type="Defect" 		field="ID" 				mergeHeader="测试结果"/>
+        <excelField name="缺陷类型"		type="Defect" 		field="Defect Type" 	mergeHeader="测试结果"/>
+        <excelField name="后续措施" 		type="Defect" 		field="Solution" 		mergeHeader="测试结果"/>
+        <excelField name="测试人员" 		type="Test Result" 	field="Tester" 			mergeHeader="测试结果"/>
+        <excelField name="测试日期" 		type="Test Result" 	field="Test Date" 		mergeHeader="测试结果"/>
+        <excelField name="备注" 			type="Test Result" 	field="Annotation" 		mergeHeader="测试结果"/>
+        <excelField name="任务ID" 		type="Test Session" field="ID"				mergeHeader="测试基本信息"/>
+        <excelField name="测试对象" 		type="Test Session" field="Target Object"	mergeHeader="测试基本信息"/>
+        <excelField name="测试目标" 		type="Test Session" field="Test Objective"	mergeHeader="测试基本信息"/>
+        <excelField name="软件版本" 		type="Test Session" field="Software Version" mergeHeader="测试基本信息"/>
+        <excelField name="测试环境" 		type="Test Session" field="Test Environment" mergeHeader="测试基本信息"/>
+        <excelField name="测试工具" 		type="Test Session" field="Test Tool_EPS"		mergeHeader="测试基本信息"/>
+        <excelField name="测试阶段"	 	type="Test Session" field="-"			mergeHeader="测试基本信息"/>
+        <excelField name="其他" 			type="Test Session" field="Others"			mergeHeader="测试基本信息"/>
+    </importType>
 </fieldMapping>
