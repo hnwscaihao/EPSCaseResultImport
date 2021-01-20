@@ -873,7 +873,6 @@ public class IntegrityUtil {
             } else {
                 cmd.addOption(new Option(key, value));
             }
-
         }
         cmd.addSelection(caseID);
         try {
@@ -883,6 +882,60 @@ public class IntegrityUtil {
             return false;
         }
         return true;
+    }
+
+    public boolean editResult(String sessionID, String caseID, Map<String, String> resultMap){
+        Command cmd = new Command("tm", "editresult");
+        cmd.addOption(new Option("sessionID", sessionID));
+        for (String key : resultMap.keySet()) {
+            String value = resultMap.get(key);
+            if ("Test Date".equals(key) || "Tester".equals(key)) {
+                cmd.addOption(new Option("field", key + "=" + value));
+            } else {
+                cmd.addOption(new Option(key, value));
+            }
+        }
+        cmd.addSelection(caseID);
+        try {
+            mksCmdRunner.execute(cmd);
+        } catch (APIException e) {
+            TestInfoImportUI.logger.error(APIExceptionUtil.getMsg(e));
+            return false;
+        }
+        return true;
+    }
+
+    public List<Map<String, String>> getResult(String caseID) throws APIException {
+        List<Map<String, String>> result = null;
+        Command cmd = new Command("tm", "results");
+        cmd.addOption(new Option("caseID", caseID));
+        List<String> fields = new ArrayList<>();
+        fields.add("sessionID");
+        MultiValue mv = new MultiValue();
+        mv.setSeparator(",");
+        for (String field : fields) {
+            mv.add(field);
+        }
+        Option op = new Option("fields", mv);
+        cmd.addOption(op);
+        Response res = null;
+        try {
+            res = mksCmdRunner.execute(cmd);
+            WorkItemIterator wk = res.getWorkItems();
+            result = new ArrayList<>();
+            while (wk.hasNext()) {
+                Map<String, String> map = new HashMap<>();
+                WorkItem wi = wk.next();
+                for (String field : fields) {
+                    String value = wi.getField(field).getValueAsString();
+                    map.put(field, value);
+                }
+                result.add(map);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     /**

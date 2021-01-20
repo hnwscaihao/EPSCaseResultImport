@@ -491,7 +491,7 @@ public class DealDataServiceImpl implements DealDataService {
                                     stepMap.put(header, value);
                                 }
                             }
-                            if (hasVal){
+                            if (hasVal) {
                                 stepList.add(stepMap);
                             }
 
@@ -524,7 +524,7 @@ public class DealDataServiceImpl implements DealDataService {
                                     }
                                 }
                             }
-                            if (hasVal){
+                            if (hasVal) {
                                 resultList.add(resultMap);
                             }
                         }
@@ -791,7 +791,7 @@ public class DealDataServiceImpl implements DealDataService {
         Date date = null;
         try {
             date = sdf2.parse(value);
-            if (date == null){
+            if (date == null) {
                 date = sdf3.parse(value);
             }
         } catch (ParseException e) {
@@ -1494,13 +1494,18 @@ public class DealDataServiceImpl implements DealDataService {
      * @param caseMap
      * @param cmd
      */
-    public void dealTestResults(List<Map<String, String>> sessionList, List<Map<String, String>> resultDatas, IntegrityUtil cmd, String caseID) {
+    public void dealTestResults(List<Map<String, String>> sessionList, List<Map<String, String>> resultDatas, IntegrityUtil cmd, String caseID) throws APIException {
         if (resultDatas != null && !resultDatas.isEmpty()) {
             for (int i = 0; i < resultDatas.size(); i++) {
                 Map<String, String> result = resultDatas.get(i);
                 Map<String, String> sessionMap = sessionList.get(i);
                 String sessionId = sessionMap.get(ID_FIELD);
-                cmd.createResult(sessionId, caseID, result);
+                List<Map<String, Object>> result1 = cmd.getResult(sessionId, caseID, "Test Case");
+                if (result1.size() > 0) {
+                    cmd.editResult(sessionId, caseID, result);
+                } else {
+                    cmd.createResult(sessionId, caseID, result);
+                }
             }
         }
     }
