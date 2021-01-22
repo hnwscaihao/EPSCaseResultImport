@@ -5,7 +5,7 @@
         <excelField name="测试用例ID" 		type="Test Case" 	field="ID" 				mergeHeader="测试用例"/>
         <excelField name="测试用例产生方法" 	type="Test Case" 	field="Methods for deriving test cases" mergeHeader="测试用例"/>
         <excelField name="测试方法" 		type="Test Case" 	field="Test methods" 	mergeHeader="测试用例"/>
-        <excelField name="测试点描述" 		type="Test Case" 	field="Text"		 	mergeHeader="测试用例"/>
+        <excelField name="测试点描述" 		type="Test Case" 	field="Text"		 	mergeHeader="测试用例" onlyCreate = "true"/>
         <excelField name="预置条件" 		type="Test Case"	field="Precondition" 	mergeHeader="测试用例"/>
         <excelField name="监控数据" 		type="Test Case" 	field="Monitoring Data" mergeHeader="测试用例"/>
         <excelField name="用例描述" 		type="Test Step" 	field="Description" 	mergeHeader="测试用例"/>

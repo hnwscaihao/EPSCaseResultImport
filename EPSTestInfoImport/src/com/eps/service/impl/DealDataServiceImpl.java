@@ -555,7 +555,7 @@ public class DealDataServiceImpl implements DealDataService {
                         }
                     }
                     if (!defectList.isEmpty()) {
-                        rowMap.put(DEFECT, defectList);
+                        newMap.put(DEFECT, defectList);
                     }
                 }
             }
@@ -1048,6 +1048,30 @@ public class DealDataServiceImpl implements DealDataService {
                     }
                 }
             }
+            if (rowMap.containsKey(DEFECT)) {
+                Object defect = rowMap.get(DEFECT);
+                if (defect instanceof List) {
+                    List<Map<String, String>> currentDefect = (List<Map<String, String>>) defect;
+                    if (!currentDefect.isEmpty()) {
+                        for (Map<String, String> stepMap : currentDefect) {
+                            for (String header : defectFields) {
+                                Map<String, String> fieldConfig = headerConfig.get(header);
+                                if (fieldConfig != null) {
+                                    String field = fieldConfig.get("field");
+                                    String value = (String) rowMap.get(field);
+                                    if (!"-".equals(field) && value != null && !"".equals(value)) {
+                                        String message = checkFieldValue(header, field, value, cmd);//校验Test Step字段值
+                                        if (message != null && !"".equals(message)) {
+                                            allMessage.append(message);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        newMap.put(DEFECT, currentDefect);
+                    }
+                }
+            }
             testInfoList.add(newMap);
         }
         TestInfoImportUI.logger.info("End Deal Excel Data ,Total Data is :" + testInfoDatas.size());
@@ -1190,11 +1214,13 @@ public class DealDataServiceImpl implements DealDataService {
 
                 // 4. 导入测试结果
                 if (resultList != null && !resultList.isEmpty()) {
-
+                    dealTestResults(sessionList, resultList, cmd, caseId);
                 }
-                dealTestResults(sessionList, resultList, cmd, caseId);
 
                 // 5. Defect信息处理
+                if (defectList != null && !defectList.isEmpty()) {
+                    dealDefect(defectList, cmd, caseId, project);
+                }
                 caseIds.add(caseId);
                 TestInfoImportUI.showProgress(1, datas.size(), caseNum, totalCaseNum);
             }
@@ -1506,6 +1532,20 @@ public class DealDataServiceImpl implements DealDataService {
                 } else {
                     cmd.createResult(sessionId, caseID, result);
                 }
+            }
+        }
+    }
+
+    public void dealDefect(List<Map<String, String>> defectList, IntegrityUtil cmd, String caseID, String project) throws APIException {
+        for (int i = 0; i < defectList.size(); i++) {
+            Map<String, String> defect = defectList.get(i);
+            if (defect.get("id") != null) {
+                cmd.editIssue(defect.get("id"), defect, null);
+            } else {
+                defect.put("Project", project);
+                defect.put("Summary", String.format("case%s,bug", caseID));
+                String defectId = cmd.createIssue("Defect", defect, null);
+                cmd.addRelationship(defectId, "Blocks", caseID);
             }
         }
     }
