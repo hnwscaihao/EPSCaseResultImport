@@ -8,6 +8,7 @@
         <excelField name="测试点描述" 		type="Test Case" 	field="Text"		 	mergeHeader="测试用例" onlyCreate = "true"/>
         <excelField name="预置条件" 		type="Test Case"	field="Precondition" 	mergeHeader="测试用例"/>
         <excelField name="监控数据" 		type="Test Case" 	field="Monitoring Data" mergeHeader="测试用例"/>
+        <excelField name="用例描述ID" 		type="Test Step" 	field="ID" 	mergeHeader="测试用例"/>
         <excelField name="用例描述" 		type="Test Step" 	field="Description" 	mergeHeader="测试用例"/>
         <excelField name="预期结果" 		type="Test Step" 	field="Expected Result" mergeHeader="测试用例"/>
         <excelField name="测试结果记录" 	type="Test Step" 	field="Cycle Verdict" 	mergeHeader="测试结果"/>

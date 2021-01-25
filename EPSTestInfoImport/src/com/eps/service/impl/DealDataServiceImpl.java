@@ -6,6 +6,8 @@ import com.eps.util.APIExceptionUtil;
 import com.eps.util.ExceptionUtil;
 import com.eps.util.IntegrityUtil;
 import com.mks.api.response.APIException;
+import com.sun.corba.se.impl.orb.ParserTable;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -23,9 +25,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -97,6 +97,7 @@ public class DealDataServiceImpl implements DealDataService {
     private static final List<String> USER_FULLNAME_RECORD = new ArrayList<String>();//记录 loginID-fullname
     private static boolean IS_USER = false;
     private static boolean RELATIONSHIP_MISTAKEN = false;
+    private static boolean DOC_STATE = false;
 
     /**
      * 利用Jsoup解析配置文件，得到相应的参数，为Type选项和创建Document提供信息 (1)
@@ -1126,6 +1127,11 @@ public class DealDataServiceImpl implements DealDataService {
                     docInfo.put("Shared Category", "Suite");
                 testSuiteID = cmd.createDocument(IMPORT_DOC_TYPE, docInfo);
                 createTest = true;
+            } else {
+                Map<String, String> map = cmd.getItemById(testSuiteID, Arrays.asList("State"));
+                if (IMPORT_DOC_TYPE.equals(map.get("State"))) {
+                    DOC_STATE = true;
+                }
             }
             if (!createTest) {
                 project = cmd.getItemByIds(Arrays.asList(testSuiteID), Arrays.asList("Project")).get(0).get("Project");
@@ -1133,6 +1139,7 @@ public class DealDataServiceImpl implements DealDataService {
             String parentId = testSuiteID;//
             int totalCaseNum = datas.size();
             List<String> caseIds = new ArrayList();//记录所有的Test Case ID
+            TestInfoImportUI.logger.info("Start Import Data , all Data size is :" + totalCaseNum);
             /** 1. 处理Test Session信息*/
 
             if (sessionData != null && !sessionData.isEmpty()) {
@@ -1146,7 +1153,6 @@ public class DealDataServiceImpl implements DealDataService {
                 sessionList = cmd.getItemByIds(sessionIdList, Arrays.asList("ID", "Tests", "State"));
             }
             /** 处理Test Session信息*/
-            TestInfoImportUI.logger.info("Start Import Data , all Data size is :" + totalCaseNum);
             /** 2. 处理Test Case 、Test Step、Test Result、 Defect信息*/
             for (int index = 0; index < totalCaseNum; index++) {
                 Map<String, Object> testCaseData = datas.get(index);
@@ -1191,7 +1197,7 @@ public class DealDataServiceImpl implements DealDataService {
                 caseId = this.getTestCase(parentId, newTestCaseData, testCaseData, project, cmd, caseId, beforeId,
                         caseCreate, caseCreateF, caseUpdate, caseUpdateF, importType);
                 testCaseData.put("ID", caseId);
-                if (!newCase) {//如果是更新Test Case。则查询系统已关联的Test Step信息 进行更新
+                /*if (!newCase) {//如果是更新Test Case。则查询系统已关联的Test Step信息 进行更新
                     Map<String, String> relatedSteps = cmd.getItemById(caseId, Arrays.asList("ID", "Test Steps"));
                     List<String> stepIds = Arrays.asList(relatedSteps.get("Test Steps").split(","));
                     for (int k = 0; k < stepIds.size(); k++) {//将查询出来的ID 写入Map，方便更新
@@ -1199,9 +1205,12 @@ public class DealDataServiceImpl implements DealDataService {
                         Map<String, String> stepMap = testStepData.get(k);
                         stepMap.put("ID", stepId);
                     }
-                }
+                }*/
 
                 // 2. 处理Test Step信息(更新创建或删除)，newTestCaseData中
+                //可以把结果取出来  Cycle Result，在Test Step Info不再进行更新Cycle Result信息
+                // 以 Case ID - [{stepId,Cycle Result,Cycle2 Result},{stepId,Cycle Result,Cycle2 Result}]
+                List<Map<String, String>> maps = deepCopyList(testStepData);
                 if (testStepData != null && !testStepData.isEmpty()) {
                     this.getTestStep(newRelatedStepIds, testStepData, testCaseData, project, cmd, stepCreate,
                             stepCreateF, stepUpdate, stepUpdateF);
@@ -1213,8 +1222,9 @@ public class DealDataServiceImpl implements DealDataService {
                 }
 
                 // 4. 导入测试结果
+                //把 前面记录的 Case - Test Step Result信息传递到方法内
                 if (resultList != null && !resultList.isEmpty()) {
-                    dealTestResults(sessionList, resultList, cmd, caseId);
+                    dealTestResults(sessionList, resultList, cmd, caseId, maps);
                 }
 
                 // 5. Defect信息处理
@@ -1225,6 +1235,7 @@ public class DealDataServiceImpl implements DealDataService {
                 TestInfoImportUI.showProgress(1, datas.size(), caseNum, totalCaseNum);
             }
             /**  判断Test Session状态，如果处于初始状态，关联Test Cases*/
+
             dealSessionCaseRelation(sessionList, caseIds, cmd);
         } catch (APIException e) {
             logger.error(APIExceptionUtil.getMsg(e));
@@ -1245,6 +1256,17 @@ public class DealDataServiceImpl implements DealDataService {
             TestInfoImportUI.showLogger("Update Test Step: success (" + stepUpdate.size() + "," + stepUpdate + "), failed ("
                     + stepUpdateF.size() + "," + stepUpdateF + ")");
         }
+    }
+
+    public static <T> List<T> deepCopyList(List<T> src) throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(byteOut);
+        out.writeObject(src);
+        ByteArrayInputStream byteIn = new ByteArrayInputStream(byteOut.toByteArray());
+        ObjectInputStream in = new ObjectInputStream(byteIn);
+        @SuppressWarnings("unchecked")
+        List<T> dest = (List<T>) in.readObject();
+        return dest;
     }
 
     /**
@@ -1362,43 +1384,47 @@ public class DealDataServiceImpl implements DealDataService {
                 logger.error("Failed to create test case : " + ExceptionUtil.catchException(e));
             }
         } else {
-            // 更新Test Case
-            // 遍历出所有 overRide为 true 的字段，
-            Map<String, Map<String, String>> fieldMaps = headerConfig;
-            Collection<Map<String, String>> fieldMapValues = fieldMaps.values();
-            List<String> fields = new ArrayList<String>();
-            for (Map<String, String> values : fieldMapValues) {
-                if (values.get("overRide").equals("false")) {
-                    fields.add(values.get("field"));
+            if (DOC_STATE) {
+                // 更新Test Case
+                // 遍历出所有 overRide为 true 的字段，
+                Map<String, Map<String, String>> fieldMaps = headerConfig;
+                Collection<Map<String, String>> fieldMapValues = fieldMaps.values();
+                List<String> fields = new ArrayList<String>();
+                for (Map<String, String> values : fieldMapValues) {
+                    if (values.get("overRide").equals("false")) {
+                        fields.add(values.get("field"));
+                    }
                 }
-            }
-            // 然后调用 mks命令查询出导入的 所有 ids 的内容。判断当前为true字段是否有值 , getItemByIds(List<String> ids,List<String> field) 此方法通过Id 获取字段的值
-            List<String> ids = new ArrayList<String>();
-            ids.add(caseId);
-            List<Map<String, String>> data = cmd.getItemByIds(ids, fields);
-            Map<String, String> dataMap = data.get(0);
-            for (String field : fields) {
-                String fieldValue = dataMap.get(field);
-                // 有  ： 不更新       没有 ： 更新
-                if (!"".equals(fieldValue) && null != fieldValue) {
-                    newTestCaseData.remove(field);
+                // 然后调用 mks命令查询出导入的 所有 ids 的内容。判断当前为true字段是否有值 , getItemByIds(List<String> ids,List<String> field) 此方法通过Id 获取字段的值
+                List<String> ids = new ArrayList<String>();
+                ids.add(caseId);
+                List<Map<String, String>> data = cmd.getItemByIds(ids, fields);
+                Map<String, String> dataMap = data.get(0);
+                for (String field : fields) {
+                    String fieldValue = dataMap.get(field);
+                    // 有  ： 不更新       没有 ： 更新
+                    if (!"".equals(fieldValue) && null != fieldValue) {
+                        newTestCaseData.remove(field);
+                    }
                 }
-            }
-            // 判断当前条目中是否 含有 Text 字段，如果有，检查此字段是否可以编辑更新（含有Text字段的条目，是否可以更新，在XML里有属性OnlyCreate 规定  。false为可编辑，true为不可编辑）
-            checkOnlyCreate(newTestCaseData, importType);
-            try {
-                cmd.editissue(caseId, newTestCaseData);
-                caseUpdate.add(caseId);
-                // 1.更新顺序
-                if (beforeId != null && !"".equals(beforeId)) {
-                    cmd.moveContent(parentId, beforeId, caseId);
+                // 判断当前条目中是否 含有 Text 字段，如果有，检查此字段是否可以编辑更新（含有Text字段的条目，是否可以更新，在XML里有属性OnlyCreate 规定  。false为可编辑，true为不可编辑）
+                checkOnlyCreate(newTestCaseData, importType);
+                try {
+                    cmd.editissue(caseId, newTestCaseData);
+                    caseUpdate.add(caseId);
+                    // 1.更新顺序
+                    if (beforeId != null && !"".equals(beforeId)) {
+                        cmd.moveContent(parentId, beforeId, caseId);
+                    }
+                    TestInfoImportUI.showLogger(" \tSuccess to update Test Case : " + caseId);
+                } catch (APIException e) {
+                    caseUpdateF.add(caseId);
+                    logger.error(APIExceptionUtil.getMsg(e));
+                    TestInfoImportUI.showLogger(" \tFailed to update Test Case : " + caseId);
+                    logger.error("Failed to edit test case : " + ExceptionUtil.catchException(e));
                 }
-                TestInfoImportUI.showLogger(" \tSuccess to update Test Case : " + caseId);
-            } catch (APIException e) {
-                caseUpdateF.add(caseId);
-                logger.error(APIExceptionUtil.getMsg(e));
-                TestInfoImportUI.showLogger(" \tFailed to update Test Case : " + caseId);
-                logger.error("Failed to edit test case : " + ExceptionUtil.catchException(e));
+            } else {
+
             }
         }
         return caseId;
@@ -1418,7 +1444,7 @@ public class DealDataServiceImpl implements DealDataService {
         Map<String, String> newInfo = new HashMap<>();
         for (Entry<String, Object> entrty : sessionInfo.entrySet()) {
             String field = entrty.getKey();
-            if (ID_FIELD.equals(field)) {//不更新ID列
+            if (ID_FIELD.equals(field) || "-".equals(field)) {//不更新ID列
                 continue;
             }
             Object value = entrty.getValue();
@@ -1520,20 +1546,56 @@ public class DealDataServiceImpl implements DealDataService {
      * @param caseMap
      * @param cmd
      */
-    public void dealTestResults(List<Map<String, String>> sessionList, List<Map<String, String>> resultDatas, IntegrityUtil cmd, String caseID) throws APIException {
+    public void dealTestResults(List<Map<String, String>> sessionList, List<Map<String, String>> resultDatas, IntegrityUtil cmd, String caseID, List<Map<String, String>> testStepDatas) throws APIException {
         if (resultDatas != null && !resultDatas.isEmpty()) {
             for (int i = 0; i < resultDatas.size(); i++) {
                 Map<String, String> result = resultDatas.get(i);
                 Map<String, String> sessionMap = sessionList.get(i);
                 String sessionId = sessionMap.get(ID_FIELD);
                 List<Map<String, Object>> result1 = cmd.getResult(sessionId, caseID, "Test Case");
+                List<Map<String, String>> stepData = new ArrayList<>();
+                if (!testStepDatas.isEmpty()) {
+                    stepData = getStepData(i, testStepDatas);
+                }
                 if (result1.size() > 0) {
-                    cmd.editResult(sessionId, caseID, result);
+                    cmd.editResult(sessionId, caseID, result, stepData);
                 } else {
-                    cmd.createResult(sessionId, caseID, result);
+                    cmd.createResult(sessionId, caseID, result, stepData);
                 }
             }
         }
+    }
+
+    private List<Map<String, String>> getStepData(int index, List<Map<String, String>> testStepDatas) {
+        ArrayList<Map<String, String>> objects = new ArrayList<>();
+        for (Map<String, String> map : testStepDatas) {
+            HashMap<String, String> step = new HashMap<>();
+            switch (index) {
+                case 0:
+                    step.put("ID", map.get("ID"));
+                    step.put("Cycle Verdict", map.get("Cycle Verdict"));
+                    break;
+                case 1:
+                    step.put("ID", map.get("ID"));
+                    step.put("Cycle Verdict", map.get("Cycle2 Verdict"));
+                    break;
+                case 2:
+                    step.put("ID", map.get("ID"));
+                    step.put("Cycle Verdict", map.get("Cycle3 Verdict"));
+                    break;
+                case 3:
+                    step.put("ID", map.get("ID"));
+                    step.put("Cycle Verdict", map.get("Cycle4 Verdict"));
+                    break;
+                case 4:
+                    step.put("ID", map.get("ID"));
+                    step.put("Cycle Verdict", map.get("Cycle5 Verdict"));
+                    break;
+
+            }
+            objects.add(step);
+        }
+        return objects;
     }
 
     public void dealDefect(List<Map<String, String>> defectList, IntegrityUtil cmd, String caseID, String project) throws APIException {

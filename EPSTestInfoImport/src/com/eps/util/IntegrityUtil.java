@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import javax.swing.*;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Description: Integrity交互定义
@@ -863,7 +864,7 @@ public class IntegrityUtil {
      * @param caseID
      * @return
      */
-    public boolean createResult(String sessionID, String caseID, Map<String, String> resultMap) {
+    public boolean createResult(String sessionID, String caseID, Map<String, String> resultMap, List<Map<String, String>> testResult) {
         Command cmd = new Command("tm", "createresult");
         cmd.addOption(new Option("sessionID", sessionID));
         for (String key : resultMap.keySet()) {
@@ -874,9 +875,35 @@ public class IntegrityUtil {
                 cmd.addOption(new Option(key, value));
             }
         }
+        //cmd.addOption(new Option("stepVerdict","12345=verdict=Passe,34567=verdict=f,"));
+        // stepVerdict，不能多个
+        //
+        if (!testResult.isEmpty()) {
+            StringBuffer sb = new StringBuffer();
+            for (Map<String, String> result : testResult) {
+                sb.append(String.format("%s=verdict=%s", result.get("ID"), result.get("Cycle Verdict")));
+            }
+            TestInfoImportUI.logger.info(sb.toString());
+            cmd.addOption(new Option("stepVerdict", sb.toString()));
+        }
         cmd.addSelection(caseID);
         try {
-            mksCmdRunner.execute(cmd);
+            if (!testResult.isEmpty()) {
+                for (int i = 0; i < testResult.size(); i++) {
+                    if (i == 0) {
+                        String v = String.format("stepID=%s:verdict=%s", testResult.get(i).get("ID"), testResult.get(i).get("Cycle Verdict"));
+                        cmd.addOption(new Option("stepVerdict", v));
+                        mksCmdRunner.execute(cmd);
+                    } else {
+                        Command cmd1 = new Command("tm", "editresult");
+                        cmd1.addOption(new Option("sessionID", sessionID));
+                        String v = String.format("stepID=%s:verdict=%s", testResult.get(i).get("ID"), testResult.get(i).get("Cycle Verdict"));
+                        cmd1.addOption(new Option("stepVerdict", v));
+                        cmd1.addSelection(caseID);
+                        mksCmdRunner.execute(cmd1);
+                    }
+                }
+            }
         } catch (APIException e) {
             TestInfoImportUI.logger.error(APIExceptionUtil.getMsg(e));
             return false;
@@ -884,7 +911,7 @@ public class IntegrityUtil {
         return true;
     }
 
-    public boolean editResult(String sessionID, String caseID, Map<String, String> resultMap){
+    public boolean editResult(String sessionID, String caseID, Map<String, String> resultMap, List<Map<String, String>> testResult) {
         Command cmd = new Command("tm", "editresult");
         cmd.addOption(new Option("sessionID", sessionID));
         for (String key : resultMap.keySet()) {
@@ -897,7 +924,22 @@ public class IntegrityUtil {
         }
         cmd.addSelection(caseID);
         try {
-            mksCmdRunner.execute(cmd);
+            if (!testResult.isEmpty()) {
+                for (int i = 0; i < testResult.size(); i++) {
+                    if (i == 0) {
+                        String v = String.format("stepID=%s:verdict=%s", testResult.get(i).get("ID"), testResult.get(i).get("Cycle Verdict"));
+                        cmd.addOption(new Option("stepVerdict", v));
+                        mksCmdRunner.execute(cmd);
+                    } else {
+                        Command cmd1 = new Command("tm", "editresult");
+                        cmd1.addOption(new Option("sessionID", sessionID));
+                        String v = String.format("stepID=%s:verdict=%s", testResult.get(i).get("ID"), testResult.get(i).get("Cycle Verdict"));
+                        cmd1.addOption(new Option("stepVerdict", v));
+                        cmd1.addSelection(caseID);
+                        mksCmdRunner.execute(cmd1);
+                    }
+                }
+            }
         } catch (APIException e) {
             TestInfoImportUI.logger.error(APIExceptionUtil.getMsg(e));
             return false;
