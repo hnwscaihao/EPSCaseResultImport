@@ -1228,6 +1228,7 @@ public class DealDataServiceImpl implements DealDataService {
                 }
 
                 // 5. Defect信息处理
+                TestInfoImportUI.logger.info("defectList" + defectList);
                 if (defectList != null && !defectList.isEmpty()) {
                     dealDefect(defectList, cmd, caseId, project);
                 }
@@ -1423,8 +1424,6 @@ public class DealDataServiceImpl implements DealDataService {
                     TestInfoImportUI.showLogger(" \tFailed to update Test Case : " + caseId);
                     logger.error("Failed to edit test case : " + ExceptionUtil.catchException(e));
                 }
-            } else {
-
             }
         }
         return caseId;
@@ -1603,11 +1602,13 @@ public class DealDataServiceImpl implements DealDataService {
             Map<String, String> defect = defectList.get(i);
             if (defect.get("id") != null) {
                 cmd.editIssue(defect.get("id"), defect, null);
+                TestInfoImportUI.logger.info("defect更新成功");
             } else {
                 defect.put("Project", project);
                 defect.put("Summary", String.format("case%s,bug", caseID));
                 String defectId = cmd.createIssue("Defect", defect, null);
                 cmd.addRelationship(defectId, "Blocks", caseID);
+                TestInfoImportUI.logger.info("defect新增成功" + defectId);
             }
         }
     }

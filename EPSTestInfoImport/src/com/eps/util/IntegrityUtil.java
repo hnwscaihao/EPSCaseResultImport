@@ -875,17 +875,6 @@ public class IntegrityUtil {
                 cmd.addOption(new Option(key, value));
             }
         }
-        //cmd.addOption(new Option("stepVerdict","12345=verdict=Passe,34567=verdict=f,"));
-        // stepVerdict，不能多个
-        //
-        if (!testResult.isEmpty()) {
-            StringBuffer sb = new StringBuffer();
-            for (Map<String, String> result : testResult) {
-                sb.append(String.format("%s=verdict=%s", result.get("ID"), result.get("Cycle Verdict")));
-            }
-            TestInfoImportUI.logger.info(sb.toString());
-            cmd.addOption(new Option("stepVerdict", sb.toString()));
-        }
         cmd.addSelection(caseID);
         try {
             if (!testResult.isEmpty()) {
