@@ -327,7 +327,7 @@ public class TestInfoImportUI extends JFrame {
 				}
 			} else {
 				try {
-					if (!cmd.docIDIsRight( testSuiteID, "Test Suite") ) {// 此处要修改，  判断类型
+					if (!(cmd.docIDIsRight( testSuiteID, "Test Suite")|| cmd.docIDIsRight( testSuiteID, "测试套件")) ) {// 此处要修改，  判断类型
 						JOptionPane.showConfirmDialog(contentPane,
 								"Your input Test Suite ID is not correctly, Please Re-Input It!");
 						return;
@@ -349,6 +349,7 @@ public class TestInfoImportUI extends JFrame {
 						new String[] { "Excel Headers", "Integrity Fields" }));
 				Map<String,String> errorRecord = new HashMap<String,String>();
 				realData = dealDataService.checkExcelData(dealDatas, errorRecord, cmd);
+				TestInfoImportUI.logger.info("realData----" + realData);
 				String checkMessage = errorRecord.get("error");
 				if(checkMessage != null && !"".equals(checkMessage)){
 					JOptionPane.showMessageDialog(this, checkMessage);

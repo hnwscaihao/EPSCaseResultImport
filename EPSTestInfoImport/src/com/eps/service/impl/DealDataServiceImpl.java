@@ -6,8 +6,6 @@ import com.eps.util.APIExceptionUtil;
 import com.eps.util.ExceptionUtil;
 import com.eps.util.IntegrityUtil;
 import com.mks.api.response.APIException;
-import com.sun.corba.se.impl.orb.ParserTable;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -55,6 +53,7 @@ public class DealDataServiceImpl implements DealDataService {
     private static final String TEST_STEP = "Test Step";//
     private static final String TEST_RESULT = "Test Result";
     private static final String TEST_SESSION = "Test Session";
+    private static final String TEST_SESSION_NAME = "测试会话";
     private static final String DEFECT = "Defect";
     private static final String SESSION_STATE = "In Testing";//Test In Testing状态
     private static final String SESSION_INIT_STATE = "Submit";//Test In Testing状态
@@ -884,7 +883,7 @@ public class DealDataServiceImpl implements DealDataService {
                         for (Map<String, String> testMap : testsList) {
                             String type = testMap.get("Type");
                             String ID = testMap.get("ID");
-                            if ("Test Case".equals(type)) {
+                            if ("Test Case".equals(type) || "测试用例".equals(type)) {
                                 caseList.add(ID);
                             } else {
                                 List<String> allContains = cmd.allContents(ID);
@@ -1077,7 +1076,7 @@ public class DealDataServiceImpl implements DealDataService {
         }
         TestInfoImportUI.logger.info("End Deal Excel Data ,Total Data is :" + testInfoDatas.size());
         resultDataList.add(testInfoList);
-        allMessage.append(cmd.checkIssueType(sessionIds, TEST_SESSION));
+        allMessage.append(cmd.checkIssueType(sessionIds, TEST_SESSION, TEST_SESSION_NAME));
         errorRecord.put("error", allMessage.toString());
         return resultDataList;
     }
@@ -1121,10 +1120,7 @@ public class DealDataServiceImpl implements DealDataService {
                 docInfo.put("Document Short Title", shortTitle);
                 docInfo.put("Project", project);
                 docInfo.put("State", INIT_DOC_STATE);
-                if (IMPORT_DOC_TYPE.endsWith("Document"))
-                    docInfo.put("Shared Category", "Document");
-                else if ("Test Suite".equals(IMPORT_DOC_TYPE))
-                    docInfo.put("Shared Category", "Suite");
+                docInfo.put("Shared Category", "Suite");
                 testSuiteID = cmd.createDocument(IMPORT_DOC_TYPE, docInfo);
                 createTest = true;
             } else {

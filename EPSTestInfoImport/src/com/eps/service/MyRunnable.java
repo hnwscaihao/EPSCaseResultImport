@@ -36,13 +36,14 @@ public class MyRunnable implements Runnable {
 		} catch (APIException e) {
 			TestInfoImportUI.logger.error(APIExceptionUtil.getMsg(e));
 			JOptionPane.showMessageDialog(TestInfoImportUI.contentPane, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-		} catch (Exception e) {
-			JOptionPane.showMessageDialog(TestInfoImportUI.contentPane, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		} catch (Exception e1) {
+			TestInfoImportUI.logger.error(e1);
+			JOptionPane.showMessageDialog(TestInfoImportUI.contentPane, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		} finally {
 			try {
 				cmd.release();
 			} catch (IOException e) {
-				
+				TestInfoImportUI.logger.error(e);
 			}
 			TestInfoImportUI.logger.info("===============End to import Test Case==============");
 		}

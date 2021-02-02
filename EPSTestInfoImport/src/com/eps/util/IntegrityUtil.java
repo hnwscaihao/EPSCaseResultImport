@@ -1022,7 +1022,7 @@ public class IntegrityUtil {
      * @return
      * @throws APIException
      */
-    public String checkIssueType(List<String> ids, String type) throws APIException {
+    public String checkIssueType(List<String> ids, String type, String name) throws APIException {
         if (ids == null || ids.isEmpty())
             return "";
         Command cmd = new Command("im", "issues");
@@ -1043,7 +1043,7 @@ public class IntegrityUtil {
                 String actualType = wi.getField("Type").getValueAsString();
                 String actualState = wi.getField("State").getValueAsString();
                 String id = wi.getId();
-                if (!actualType.equals(type)) {
+                if (!(actualType.equals(type) || actualType.equals(name))) {
                     typeErrorMessage.append(id + ";");
                     typeError = true;
                 }
